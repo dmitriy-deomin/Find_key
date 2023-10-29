@@ -1,0 +1,9 @@
+1 -CORE CPU (0-log mode)
+1 -[44u](BTC 0/1)
+1 -[44c](BTC 0/1)
+1 -[49](BTC 0/1)
+1 -[84](BTC 0/1)
+1 -[44](ETH 0/1)
+----------------------------------------------------------
+            found to be saved BOBLO.txt
+donate:bc1qg89l3580w7zgqkc54kufgpdyk3ur88d772l9y0
