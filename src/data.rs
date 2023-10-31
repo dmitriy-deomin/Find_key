@@ -16,6 +16,7 @@ struct MetaDataBloom {
 }
 
 pub(crate) fn load_bloom() -> Bloom<String> {
+    //если блум есть загружаем его
     let d_b = Path::new("data.bloom");
     let m_b = Path::new("metadata.bloom");
     if d_b.exists() && m_b.exists() {
@@ -49,7 +50,7 @@ pub(crate) fn load_bloom() -> Bloom<String> {
 //база для поиска
         let num_items = len_eth + len_btc;
 
-        let fp_rate = 0.0000000001;
+        let fp_rate = 0.00000000001;
         let mut database = Bloom::new_for_fp_rate(num_items, fp_rate);
 
         println!("LOAD AND SAVE BLOOM...");

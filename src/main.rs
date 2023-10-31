@@ -200,17 +200,21 @@ fn score_nibble(nibble: u8, has_reached_non_zero: &mut bool) -> i32 {
 
     local_score
 }
-fn print_and_save(adress: String, secret_key: String) {
-    println!("\n!!!!!!!!!!!!!!!!!!!!FOUND!!!!!!!!!!!!!!!!!!!!!!!!!");
-    println!("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-    println!("ADDRESS:{}", &adress);
+fn print_and_save(address: String, secret_key: String) {
+    println!("\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+    println!("!!!!!!!!!!!!!!!!!!!!FOUND!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+    println!("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+    println!("ADDRESS:{}", &address);
     println!("HEX:{}", &secret_key);
 
     let s = format!("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n\
-    ADRESS:{adress}\nHEX:{secret_key}\n\
+    ADDRESS:{address}\n\
+    HEX:{secret_key}\n\
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
     add_v_file("BOBLO.txt", s.to_string());
-    println!("-------------------SAVE TO BOBLO.txt --------------------");
+
+    println!("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+    println!("!!!!!!!!!!!!!!!SAVE TO BOBLO.txt!!!!!!!!!!!!!!!!!!!!!!!!");
     println!("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
     println!("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
 }
