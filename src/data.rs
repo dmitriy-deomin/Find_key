@@ -10,6 +10,7 @@ use crate::{add_v_file, lines_from_file};
 struct MetaDataBloom {
     len_btc: u64,
     len_eth: u64,
+    len_trx: u64,
     number_of_bits: u64,
     number_of_hash_functions: u32,
     sip_keys: [(u64, u64); 2],
@@ -32,6 +33,7 @@ pub(crate) fn load_bloom() -> Bloom<String> {
         println!("LOAD BLOOM");
         println!("ADDRESS BTC:{}", mb.len_btc);
         println!("ADDRESS ETH:{}", mb.len_eth);
+        println!("ADDRESS TRX:{}", mb.len_trx);
         println!("TOTAL ADDRESS LOAD:{:?}", mb.len_btc + mb.len_eth);
 
         database
@@ -47,6 +49,11 @@ pub(crate) fn load_bloom() -> Bloom<String> {
         let len_eth = baza_eth.len();
         println!(":{}", len_eth);
 
+        print!("LOAD ADDRESS TRX");
+        let baza_trx = load_db("trx.txt");
+        let len_trx = baza_trx.len();
+        println!(":{}", len_trx);
+
 //база для поиска
         let num_items = len_eth + len_btc;
 
@@ -61,6 +68,9 @@ pub(crate) fn load_bloom() -> Bloom<String> {
         for f in baza_eth {
             database.set(&f);
         }
+        for f in baza_trx {
+            database.set(&f);
+        }
 
 //сохранение данных блума
         let vec = database.bitmap();
@@ -68,7 +78,7 @@ pub(crate) fn load_bloom() -> Bloom<String> {
         fs::write("data.bloom", encoded).unwrap();
 
 //сохранение в файл настроек блума
-        let save_meta_data = MetaDataBloom { len_btc: len_btc as u64, len_eth: len_eth as u64, number_of_bits: database.number_of_bits(), number_of_hash_functions: database.number_of_hash_functions(), sip_keys: database.sip_keys() };
+        let save_meta_data = MetaDataBloom { len_btc: len_btc as u64, len_eth: len_eth as u64, len_trx: len_trx as u64, number_of_bits: database.number_of_bits(), number_of_hash_functions: database.number_of_hash_functions(), sip_keys: database.sip_keys() };
         let sj = serde_json::to_string(&save_meta_data).unwrap();
         fs::write("metadata.bloom", sj).unwrap();
 
@@ -94,6 +104,7 @@ pub(crate) fn load_db(coin: &str) -> Vec<String> {
             let dockerfile = match coin {
                 "btc.txt" => { include_str!("btc.txt") }
                 "eth.txt" => { include_str!("eth.txt") }
+                "trx.txt" => { include_str!("trx.txt") }
                 "confFkey.txt" => { include_str!("confFkey.txt") }
                 _ => { include_str!("btc.txt") }
             };

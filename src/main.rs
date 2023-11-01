@@ -16,13 +16,13 @@ use bitcoin::Network::Bitcoin;
 use bloomfilter::Bloom;
 use tiny_keccak::{Hasher, Keccak};
 use tokio::task;
-use hex::encode;
+use hex::{encode, FromHex};
 use rustils::parse::boolean::string_to_bool;
 
 #[tokio::main]
 async fn main() {
     println!("================");
-    println!("FIND KEY v 0.8.0");
+    println!("FIND KEY v 0.9.0");
     println!("================");
 
     let conf = data::load_db("confFkey.txt");
@@ -34,6 +34,7 @@ async fn main() {
     let btc49 = first_word(&conf[3].to_string()).to_string();
     let btc84 = first_word(&conf[4].to_string()).to_string();
     let eth44 = first_word(&conf[5].to_string()).to_string();
+    let trx = first_word(&conf[6].to_string()).to_string();
 
     let mut bench = false;
     if num_cores == 0 {
@@ -48,9 +49,10 @@ async fn main() {
      -[44c]BTC:{}\n\
     -[49]BTC:{}\n\
     -[84]BTC:{}\n\
-    -[44]ETH:{}\n", num_cpus::get(),
+    -ETH:{}\n\
+    -TRX:{}\n", num_cpus::get(),
              string_to_bool(btc44_u.clone()),string_to_bool(btc44_c.clone()), string_to_bool(btc49.clone()),
-             string_to_bool(btc84.clone()), string_to_bool(eth44.clone()));
+             string_to_bool(btc84.clone()), string_to_bool(eth44.clone()),string_to_bool(trx.clone()));
 
     //если блум есть загрузим его
     let database = data::load_bloom();
@@ -62,6 +64,7 @@ async fn main() {
     settings.push(btc49);
     settings.push(btc84);
     settings.push(eth44);
+    settings.push(trx);
 
     println!("----------------");
 
@@ -108,6 +111,7 @@ fn process(file_content: &Arc<Bloom<String>>, bench: bool, tx: Sender<String>, s
     let btc49 = string_to_bool(set[2].to_string());
     let btc84 = string_to_bool(set[3].to_string());
     let eth44 = string_to_bool(set[4].to_string());
+    let trx = string_to_bool(set[5].to_string());
 
     loop {
         let secret_key = SecretKey::new(&mut rand::thread_rng());
@@ -123,6 +127,7 @@ fn process(file_content: &Arc<Bloom<String>>, bench: bool, tx: Sender<String>, s
         if btc49{addresa.push(Address::p2shwpkh(&public_key_c, Bitcoin).unwrap().to_string())};
         if btc84{addresa.push(Address::p2wpkh(&public_key_c, Bitcoin).unwrap().to_string())};
         if eth44{addresa.push(address_from_seed_eth(secret_key.secret_bytes()))};
+        if trx{addresa.push(keys::Address::from_private(&keys::Private::from_hex(&*secret_key.display_secret().to_string()).unwrap()).to_string());};
 
         hex = hex+1;
         for a in addresa.iter() {
@@ -135,11 +140,9 @@ fn process(file_content: &Arc<Bloom<String>>, bench: bool, tx: Sender<String>, s
                 if start.elapsed() >= Duration::from_secs(1) {
                     println!("--------------------------------------------------------");
                     println!("HEX:{}", &secret_key.display_secret());
-                    println!("ADDRESS:{}",addresa[0]);
-                    println!("ADDRESS:{}",addresa[1]);
-                    println!("ADDRESS:{}",addresa[2]);
-                    println!("ADDRESS:{}",addresa[3]);
-                    println!("ADDRESS:{}",addresa[4]);
+                    for ad in addresa.iter()  {
+                        println!("ADDRESS:{ad}");
+                    }
                     println!("--------------------------------------------------------");
                     start = Instant::now();
                     speed = 0;
@@ -211,10 +214,10 @@ fn print_and_save(address: String, secret_key: String) {
     ADDRESS:{address}\n\
     HEX:{secret_key}\n\
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
-    add_v_file("BOBLO.txt", s.to_string());
+    add_v_file("FOUND.txt", s.to_string());
 
     println!("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-    println!("!!!!!!!!!!!!!!!SAVE TO BOBLO.txt!!!!!!!!!!!!!!!!!!!!!!!!");
+    println!("!!!!!!!!!!!!!!!SAVE TO FOUND.txt!!!!!!!!!!!!!!!!!!!!!!!!");
     println!("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
     println!("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
 }
