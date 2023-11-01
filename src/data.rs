@@ -55,7 +55,7 @@ pub(crate) fn load_bloom() -> Bloom<String> {
         println!(":{}", len_trx);
 
 //база для поиска
-        let num_items = len_eth + len_btc;
+        let num_items = len_eth + len_btc+len_trx;
 
         let fp_rate = 0.00000000001;
         let mut database = Bloom::new_for_fp_rate(num_items, fp_rate);
