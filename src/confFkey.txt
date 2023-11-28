@@ -16,6 +16,10 @@
 1 -[BTG 44c (0/1)]
 1 -[BTG 49 (0/1)]
 *,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,* -custom find digit(0123456789ABCDEF)
+0 -ENUMERATION start digit(MAX 32)
+0 -ENUMERATION end digit(MAX 32)
+0 -ENUMERATION SAVE start
+0 -ENUMERATION SAVE end
 ----------------------------------------------------------
             found to be saved FOUND.txt
 donate:bc1qg89l3580w7zgqkc54kufgpdyk3ur88d772l9y0

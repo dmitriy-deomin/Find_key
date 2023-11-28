@@ -16,8 +16,6 @@ pub const BIP49_DOGE: u8 = 0x16;
 pub const LEGASY_LTC: u8 = 0x30;
 
 
-
-
 //legasy-----------------------------------------------------------------------
 pub fn get_legacy(public_key: &Vec<u8>, coin: u8) -> String {
     let hash160 = hash160(&public_key.as_ref());
@@ -65,33 +63,33 @@ pub fn get_hasher_from_public(secret_key: [u8; 32]) -> [u8; 32] {
 //     v.to_base58()
 // }
 
-fn hex_to_wif_compressed(raw_hex: Vec<u8>) -> String {
-    let mut v = Vec::with_capacity(raw_hex.len() + 2);
-    v.push(0x80);
-    v.extend_from_slice(raw_hex.as_ref());
-    v.push(0x01);
-
-    let checksum = sha256d(&v).0;
-    v.push(checksum[0]);
-    v.push(checksum[1]);
-    v.push(checksum[2]);
-    v.push(checksum[3]);
-    let b: &[u8] = v.as_ref();
-    b.to_base58()
-}
-fn hex_to_wif_uncompressed(raw_hex: Vec<u8>) -> String {
-    let mut v = Vec::with_capacity(raw_hex.len() + 2);
-    v.push(0x80);
-    v.extend_from_slice(raw_hex.as_ref());
-
-    let checksum = sha256d(&v).0;
-    v.push(checksum[0]);
-    v.push(checksum[1]);
-    v.push(checksum[2]);
-    v.push(checksum[3]);
-    let b: &[u8] = v.as_ref();
-    b.to_base58()
-}
+// fn hex_to_wif_compressed(raw_hex: Vec<u8>) -> String {
+//     let mut v = Vec::with_capacity(raw_hex.len() + 2);
+//     v.push(0x80);
+//     v.extend_from_slice(raw_hex.as_ref());
+//     v.push(0x01);
+//
+//     let checksum = sha256d(&v).0;
+//     v.push(checksum[0]);
+//     v.push(checksum[1]);
+//     v.push(checksum[2]);
+//     v.push(checksum[3]);
+//     let b: &[u8] = v.as_ref();
+//     b.to_base58()
+// }
+// fn hex_to_wif_uncompressed(raw_hex: Vec<u8>) -> String {
+//     let mut v = Vec::with_capacity(raw_hex.len() + 2);
+//     v.push(0x80);
+//     v.extend_from_slice(raw_hex.as_ref());
+//
+//     let checksum = sha256d(&v).0;
+//     v.push(checksum[0]);
+//     v.push(checksum[1]);
+//     v.push(checksum[2]);
+//     v.push(checksum[3]);
+//     let b: &[u8] = v.as_ref();
+//     b.to_base58()
+// }
 pub fn legasy_btc_to_bch(legacy_addr: String) -> String {
 
     let mut addr = Address::decode(legacy_addr.as_str()).unwrap();
@@ -140,15 +138,6 @@ pub fn get_bip49(public_key_c: Vec<u8>,coin:u8) -> String {
     b.to_base58()
 }
 //-------------------------------------------------------------------------------------
-pub fn get_bip84_p2wsh(public_key_c: &Vec<u8>){
-    println!("{}",hex::encode(public_key_c));
-
-    let mut hasher = Sha256::new();
-    hasher.update(&public_key_c);
-    let digest1 = hasher.finalize();
-
-    println!("{}",hex::encode(digest1));
-}
 
 //ETH----------------------------------------------------------------------------
 const NIBBLE_MASK: u8 = 0x0F;

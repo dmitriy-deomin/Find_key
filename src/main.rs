@@ -25,13 +25,12 @@ const HEX: [&str; 16] = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", 
 #[tokio::main]
 async fn main() {
     println!("================");
-    println!("FIND KEY v 1.0.4");
+    println!("FIND KEY v 1.0.5");
     println!("================");
 
     let conf = data::load_db("confFkey.txt");
 
-    let stroka_0_all = &conf[0].to_string();
-    let mut num_cores: u8 = first_word(stroka_0_all).to_string().parse::<u8>().unwrap();
+    let mut num_cores: u8 = first_word(&conf[0].to_string()).to_string().parse::<u8>().unwrap();
     let btc44_u = first_word(&conf[1].to_string()).to_string();
     let btc44_c = first_word(&conf[2].to_string()).to_string();
     let btc49 = first_word(&conf[3].to_string()).to_string();
@@ -49,6 +48,10 @@ async fn main() {
     let btg44_c = first_word(&conf[15].to_string()).to_string();
     let btg49 = first_word(&conf[16].to_string()).to_string();
     let custom_digit = first_word(&conf[17].to_string()).to_string().parse::<String>().unwrap();
+    let enum_start = first_word(&conf[18].to_string()).to_string();
+    let enum_end = first_word(&conf[19].to_string()).to_string();
+    let save_start = first_word(&conf[20].to_string()).to_string();
+    let save_end = first_word(&conf[21].to_string()).to_string();
 
     let mut bench = false;
     if num_cores == 0 {
@@ -75,7 +78,11 @@ async fn main() {
     -BCH:{}\n\
     -BTG[44u]:{}\n\
     -BTG[44c]:{}\n\
-    -BTG[49]:{}\n", num_cpus::get(), custom_digit,
+    -BTG[49]:{}\n\
+    ENUMERATION start:{enum_start}\n\
+    ENUMERATION end:{enum_end}\n\
+    ENUMERATION SAVE start:{save_start}\n\
+    ENUMERATION SAVE end:{save_end}\n", num_cpus::get(), custom_digit,
              string_to_bool(btc44_u.clone()), string_to_bool(btc44_c.clone()), string_to_bool(btc49.clone()),
              string_to_bool(btc84.clone()), string_to_bool(btc84b.clone()), string_to_bool(eth44.clone()), string_to_bool(trx.clone()),
              string_to_bool(ltc_u.clone()), string_to_bool(ltc_c.clone()), string_to_bool(doge_u.clone()),
@@ -104,6 +111,10 @@ async fn main() {
     settings.push(btg44_c);
     settings.push(btg49);
     settings.push(custom_digit);
+    settings.push(enum_start);
+    settings.push(enum_end);
+    settings.push(save_start);
+    settings.push(save_end);
 
     println!("----------------");
 
@@ -133,7 +144,7 @@ async fn main() {
         total_address = total_address + speed;
         total_hex = total_hex + hex;
         speed = speed * num_cores as u64;
-        print!("\r{}ADDRESS:{speed}/s || HEX:{hex}/s || TOTAL:{total_address}/{total_hex}  ", backspace);
+        print!("\r{}ADDRESS:{speed}/s || HEX:{hex}/s || TOTAL:{total_address}/{total_hex}  {}",backspace,list[2].to_string() );
         stdout.flush().unwrap();
     }
 }
@@ -141,6 +152,7 @@ async fn main() {
 fn process(file_content: &Arc<Bloom<String>>, bench: bool, tx: Sender<String>, set: &Arc<Vec<String>>) {
     let mut start = Instant::now();
     let mut speed: u32 = 0;
+    let mut speed_save: u32 = 0;
 
     let mut addresa = vec![];
     let mut hex = 0;
@@ -161,92 +173,174 @@ fn process(file_content: &Arc<Bloom<String>>, bench: bool, tx: Sender<String>, s
     let btg44_u = string_to_bool(set[13].to_string());
     let btg44_c = string_to_bool(set[14].to_string());
     let btg49 = string_to_bool(set[15].to_string());
-    let custom_digit =set[16].to_string();
+    let custom_digit = set[16].to_string();
     let list_custom: Vec<&str> = custom_digit.split(",").collect();
     //проверим что длинна правельная
-    if list_custom.len()!=64{println!("ERROR LEN HEX:{}!=64",list_custom.len())}
+    if list_custom.len() != 64 { println!("ERROR LEN HEX:{}!=64", list_custom.len()) }
     let mut rng = rand::thread_rng();
+    let mut hex_rand = "".to_string();
+
+    let enum_start = set[17].to_string().parse::<usize>().unwrap();
+    let enum_end = set[18].to_string().parse::<usize>().unwrap();
+    let end_hex = get_hex(enum_end);
+    let start_hex = get_hex(enum_start);
+
+    let secret_key_default = SecretKey::from_str("9dd1e8aaf75daba3a770e402659d66f12025b1762502f9df16b741bc6fc4919b").unwrap();
+
+    let save_start = u128::from_str_radix(&*set[19].to_string(), 16).unwrap();
+    let save_end = u128::from_str_radix(&*set[20].to_string(),16).unwrap();
+
+    let config_file = lines_from_file("confFkey.txt").unwrap();
 
     loop {
-        let mut hex_rand = "".to_string();
-        for i in 0..64{
-            if list_custom[i as usize] == "*" {
+        hex_rand.clear();
+        for i in enum_start..64-enum_end {
+            if list_custom[i] == "*" {
                 hex_rand.push_str(&HEX[rng.gen_range(0..16)].to_string());
             } else {
-                hex_rand.push_str(&list_custom[i as usize].to_string());
+                hex_rand.push_str(&list_custom[i].to_string());
             }
         }
 
-        // let secret_key = SecretKey::new(&mut rand::thread_rng());
-        let secret_key = SecretKey::from_str(hex_rand.as_str()).unwrap();
+        for end_h in save_end..=end_hex  {
+            for start_h in save_start..=start_hex {
+                let st = if start_hex == 0 { "".to_string() } else { format!("{:0enum_start$X}", start_h) };
+                let en = if end_hex == 0 { "".to_string() } else { format!("{:0enum_end$X}", end_h) };
+                let hex_rand = format!("{st}{hex_rand}{en}");
 
-        let private_key_u = PrivateKey::new_uncompressed(secret_key, Bitcoin);
-        let private_key_c = PrivateKey::new(secret_key, Bitcoin);
+                let secret_key = SecretKey::from_str(hex_rand.as_str()).unwrap_or(secret_key_default);
 
-        let public_key_u = PublicKey::from_private_key(&Secp256k1::new(), &private_key_u);
-        let public_key_c = PublicKey::from_private_key(&Secp256k1::new(), &private_key_c);
+                let private_key_u = PrivateKey::new_uncompressed(secret_key, Bitcoin);
+                let private_key_c = PrivateKey::new(secret_key, Bitcoin);
 
-        // wallets::get_bip84_p2wsh(&public_key_c.to_bytes());
+                let public_key_u = PublicKey::from_private_key(&Secp256k1::new(), &private_key_u);
+                let public_key_c = PublicKey::from_private_key(&Secp256k1::new(), &private_key_c);
 
-        if btc44_u { addresa.push(wallets::get_legacy(&public_key_u.to_bytes(), wallets::LEGASY_BTC)) };
-        if btc44_c { addresa.push(wallets::get_legacy(&public_key_c.to_bytes(), wallets::LEGASY_BTC)) };
-        if btc49 { addresa.push(wallets::get_bip49(public_key_c.to_bytes(), wallets::BIP49_BTC)); };
-        if btc84 { addresa.push(Address::p2wpkh(&public_key_c, Bitcoin).unwrap().to_string()) };
-        if btc84b {
-            let script = ScriptBuf::from_bytes(public_key_c.to_bytes());
-            addresa.push(Address::p2wsh(&script, Bitcoin).to_string())
-        };
+                if btc44_u { addresa.push(wallets::get_legacy(&public_key_u.to_bytes(), wallets::LEGASY_BTC)) };
+                if btc44_c { addresa.push(wallets::get_legacy(&public_key_c.to_bytes(), wallets::LEGASY_BTC)) };
+                if btc49 { addresa.push(wallets::get_bip49(public_key_c.to_bytes(), wallets::BIP49_BTC)); };
+                if btc84 { addresa.push(Address::p2wpkh(&public_key_c, Bitcoin).unwrap().to_string()) };
+                if btc84b {
+                    let script = ScriptBuf::from_bytes(public_key_c.to_bytes());
+                    addresa.push(Address::p2wsh(&script, Bitcoin).to_string())
+                };
 
-        let hash = wallets::get_hasher_from_public(secret_key.secret_bytes());
-        if eth44 { addresa.push(wallets::get_eth_from_prk(hash)) };
+                let hash = wallets::get_hasher_from_public(secret_key.secret_bytes());
+                if eth44 { addresa.push(wallets::get_eth_from_prk(hash)) };
 
-        if trx { addresa.push(wallets::get_trx_from_prk(hash)) };
+                if trx { addresa.push(wallets::get_trx_from_prk(hash)) };
 
-        if ltc_u { addresa.push(wallets::get_legacy(&public_key_u.to_bytes(), wallets::LEGASY_LTC)) };
-        if ltc_c { addresa.push(wallets::get_legacy(&public_key_c.to_bytes(), wallets::LEGASY_LTC)) };
+                if ltc_u { addresa.push(wallets::get_legacy(&public_key_u.to_bytes(), wallets::LEGASY_LTC)) };
+                if ltc_c { addresa.push(wallets::get_legacy(&public_key_c.to_bytes(), wallets::LEGASY_LTC)) };
 
-        if doge_u { addresa.push(wallets::get_legacy(&public_key_u.to_bytes(), wallets::LEGASY_DOGE)) };
-        if doge_c { addresa.push(wallets::get_legacy(&public_key_c.to_bytes(), wallets::LEGASY_DOGE)) };
-        if doge49 { addresa.push(wallets::get_bip49(public_key_c.to_bytes(), wallets::BIP49_DOGE)) };
+                if doge_u { addresa.push(wallets::get_legacy(&public_key_u.to_bytes(), wallets::LEGASY_DOGE)) };
+                if doge_c { addresa.push(wallets::get_legacy(&public_key_c.to_bytes(), wallets::LEGASY_DOGE)) };
+                if doge49 { addresa.push(wallets::get_bip49(public_key_c.to_bytes(), wallets::BIP49_DOGE)) };
 
-        if bch { addresa.push(wallets::legasy_btc_to_bch(wallets::get_legacy(&public_key_c.to_bytes(), wallets::LEGASY_BTC))) };
+                if bch { addresa.push(wallets::legasy_btc_to_bch(wallets::get_legacy(&public_key_c.to_bytes(), wallets::LEGASY_BTC))) };
 
-        if btg44_u { addresa.push(wallets::get_legacy(&public_key_u.to_bytes(), wallets::LEGASY_BTG)) };
-        if btg44_c { addresa.push(wallets::get_legacy(&public_key_c.to_bytes(), wallets::LEGASY_BTG)) };
-        if btg49 { addresa.push(wallets::get_bip49(public_key_c.to_bytes(), wallets::BIP49_BTG)); };
+                if btg44_u { addresa.push(wallets::get_legacy(&public_key_u.to_bytes(), wallets::LEGASY_BTG)) };
+                if btg44_c { addresa.push(wallets::get_legacy(&public_key_c.to_bytes(), wallets::LEGASY_BTG)) };
+                if btg49 { addresa.push(wallets::get_bip49(public_key_c.to_bytes(), wallets::BIP49_BTG)); };
 
-        hex = hex + 1;
-        for a in addresa.iter() {
-            if file_content.check(&a) {
-                print_and_save(a.to_string(), secret_key.display_secret().to_string());
-            }
-
-            if bench {
-                speed = speed + 1;
-                if start.elapsed() >= Duration::from_secs(1) {
-                    println!("--------------------------------------------------------");
-                    println!("HEX:{}", &secret_key.display_secret());
-                    for ad in addresa.iter() {
-                        println!("ADDRESS:{ad}");
+                hex = hex + 1;
+                for a in addresa.iter() {
+                    if file_content.check(&a) {
+                        print_and_save(a.to_string(), secret_key.display_secret().to_string());
                     }
-                    println!("--------------------------------------------------------");
-                    start = Instant::now();
-                    speed = 0;
+
+                    if bench {
+                        speed = speed + 1;
+                        if start.elapsed() >= Duration::from_secs(1) {
+                            println!("--------------------------------------------------------");
+                            println!("HEX:{}", &secret_key.display_secret());
+                            for ad in addresa.iter() {
+                                println!("ADDRESS:{ad}");
+                            }
+                            println!("--------------------------------------------------------");
+                            start = Instant::now();
+                            speed = 0;
+                        }
+                    } else {
+                        speed = speed + 1;
+                        if start.elapsed() >= Duration::from_secs(1) {
+                            tx.send(format!("{speed},{hex},", ).to_string()).unwrap();
+                            start = Instant::now();
+                            speed = 0;
+                            hex = 0;
+                            speed_save = speed_save+1;
+                        }
+                        if speed_save>=10{
+                          //каждые 10 секунд сохраняем
+                            let mut cont="".to_string();
+                            for (i,f) in config_file.iter().enumerate(){
+                                if i==20{
+                                    let st20 = if st==""{ "0 -ENUMERATION SAVE start\n".to_string() }else { format!("{:x} -ENUMERATION SAVE start\n",start_h)};
+                                    cont.push_str(st20.as_str());
+                                }else if i==21 {
+                                    let st21 = if en==""{"0 -ENUMERATION SAVE end\n".to_string()}else { format!("{:x} -ENUMERATION SAVE end\n",end_h )};
+                                    cont.push_str(st21.as_str());
+                                } else {
+                                    cont.push_str(&*format!("{f}\n"));
+                                }
+                                tx.send(format!("0,0,SAVE").to_string()).unwrap();
+                                speed_save=0;
+                            }
+
+                            let file_path = "confFkey.txt";
+                            let mut file = OpenOptions::new()
+                                .write(true)
+                                .truncate(true)  // Это гарантирует, что файл будет обрезан до нулевой длины при открытии
+                                .open(file_path)
+                                .unwrap();
+                            // Теперь можем записать что-то в файл
+                            file.write_all(cont.as_ref()).unwrap();
+                        }
+                    }
                 }
-            } else {
-                speed = speed + 1;
-                if start.elapsed() >= Duration::from_secs(1) {
-                    tx.send(format!("{speed},{hex}", ).to_string()).unwrap();
-                    start = Instant::now();
-                    speed = 0;
-                    hex = 0;
-                }
+                addresa.clear();
             }
         }
-        addresa.clear();
     }
 }
-
+fn get_hex(range: usize) -> u128 {
+    let hex = match range {
+        1 => 0xF,
+        2 => 0xFF,
+        3 => 0xFFF,
+        4 => 0xFFFF,
+        5 => 0xFFFFF,
+        6 => 0xFFFFFF,
+        7 => 0xFFFFFFF,
+        8 => 0xFFFFFFFF,
+        9 => 0xFFFFFFFFF,
+        10 => 0xFFFFFFFFFF,
+        11 => 0xFFFFFFFFFFF,
+        12 => 0xFFFFFFFFFFFF,
+        13 => 0xFFFFFFFFFFFFF,
+        14 => 0xFFFFFFFFFFFFFF,
+        15 => 0xFFFFFFFFFFFFFFF,
+        16 => 0xFFFFFFFFFFFFFFFF,
+        17 => 0xFFFFFFFFFFFFFFFFF,
+        18 => 0xFFFFFFFFFFFFFFFFFF,
+        19 => 0xFFFFFFFFFFFFFFFFFFF,
+        20 => 0xFFFFFFFFFFFFFFFFFFFF,
+        21 => 0xFFFFFFFFFFFFFFFFFFFFF,
+        22 => 0xFFFFFFFFFFFFFFFFFFFFFF,
+        23 => 0xFFFFFFFFFFFFFFFFFFFFFFF,
+        24 => 0xFFFFFFFFFFFFFFFFFFFFFFFF,
+        25 => 0xFFFFFFFFFFFFFFFFFFFFFFFFF,
+        26 => 0xFFFFFFFFFFFFFFFFFFFFFFFFFF,
+        27 => 0xFFFFFFFFFFFFFFFFFFFFFFFFFFF,
+        28 => 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFF,
+        29 => 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFF,
+        30 => 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF,
+        31 => 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF,
+        32 => 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF,
+        _ => { 0x0 }
+    };
+    hex
+}
 fn print_and_save(address: String, secret_key: String) {
     println!("\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
     println!("!!!!!!!!!!!!!!!!!!!!FOUND!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
@@ -289,15 +383,3 @@ fn add_v_file(name: &str, data: String) {
         .write(data.as_bytes())
         .expect("write failed");
 }
-
-
-// let pubkey_hex = "04005937fd439b3c19014d5f328df8c7ed514eaaf41c1980b8aeab461dffb23fbf3317e42395db24a52ce9fc947d9c22f54dc3217c8b11dfc7a09c59e0dca591d3";
-// let pubkeyhash = hash160(&hex::decode(pubkey_hex).unwrap());
-// let legacyaddr = legacyaddr_encode(&pubkeyhash, AddressType::P2PKH, Network::Mainnet);
-// assert!(legacyaddr == "1NM2HFXin4cEQRBLjkNZAS98qLX9JKzjKn");
-
-// pub fn get_bch_to_public(pubkey: String) -> String {
-//     let pubkeyhash = bch::hash160(&hex::decode(pubkey).unwrap());
-//     let legacyaddr = bch::legacyaddr_encode(&pubkeyhash, bch::AddressType::P2PKH, bch::Network::Mainnet);
-//     legacyaddr
-// }
