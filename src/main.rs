@@ -261,6 +261,8 @@ fn process(file_content: &Arc<Bloom<String>>, bench: bool, tx: Sender<String>, s
                         if start.elapsed() >= Duration::from_secs(1) {
                             println!("--------------------------------------------------------");
                             println!("HEX:{}", &secret_key.display_secret().to_string());
+                            println!("PUBLIC U:{}", &public_key_u);
+                            println!("PUBLIC C:{}", &public_key_c);
                             for ad in addresa.iter() {
                                 println!("ADDRESS:{ad}");
                             }
