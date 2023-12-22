@@ -4,7 +4,7 @@ version = 3
 
 [[package]]
 name = "Find_key"
-version = "1.0.5"
+version = "1.0.7"
 dependencies = [
  "base58 0.2.0",
  "bincode",
@@ -13,6 +13,8 @@ dependencies = [
  "bloomfilter",
  "eip55",
  "hex 0.4.3",
+ "libc",
+ "libloading",
  "libsecp256k1 0.7.1",
  "num_cpus",
  "rand 0.8.5",
@@ -560,6 +562,16 @@ name = "libc"
 version = "0.2.149"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a08173bc88b7955d1b3145aa561539096c421ac8debde8cbc3612ec635fee29b"
+
+[[package]]
+name = "libloading"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c571b676ddfc9a8c12f1f3d3085a7b163966a8fd8098a90640953ce5f6170161"
+dependencies = [
+ "cfg-if",
+ "windows-sys",
+]
 
 [[package]]
 name = "libsecp256k1"

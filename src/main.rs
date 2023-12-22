@@ -1,5 +1,6 @@
 mod data;
 mod wallets;
+mod ice_library;
 
 extern crate bitcoin;
 extern crate secp256k1;
@@ -9,8 +10,8 @@ use std::{io, fs::{OpenOptions}, fs::File, io::Write, time::Instant, time::Durat
 use std::io::stdout;
 use std::str::FromStr;
 
-use secp256k1::{rand, Secp256k1, SecretKey};
-use bitcoin::{PrivateKey, Address, PublicKey, ScriptBuf};
+use secp256k1::{rand, SecretKey};
+use bitcoin::{ Address, PublicKey, ScriptBuf};
 use std::sync::{Arc, mpsc};
 use std::sync::mpsc::Sender;
 use bitcoin::Network::Bitcoin;
@@ -25,7 +26,7 @@ const HEX: [&str; 16] = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", 
 #[tokio::main]
 async fn main() {
     println!("================");
-    println!("FIND KEY v 1.0.5");
+    println!("FIND KEY v 1.0.7");
     println!("================");
 
     let conf = data::load_db("confFkey.txt");
@@ -144,7 +145,7 @@ async fn main() {
         total_address = total_address + speed;
         total_hex = total_hex + hex;
         speed = speed * num_cores as u64;
-        print!("\r{}ADDRESS:{speed}/s || HEX:{hex}/s || TOTAL:{total_address}/{total_hex}  {}",backspace,list[2].to_string() );
+        print!("\r{}ADDRESS:{speed}/s || HEX:{hex}/s || TOTAL:{total_address}/{total_hex}  {}", backspace, list[2].to_string());
         stdout.flush().unwrap();
     }
 }
@@ -188,13 +189,17 @@ fn process(file_content: &Arc<Bloom<String>>, bench: bool, tx: Sender<String>, s
     let secret_key_default = SecretKey::from_str("9dd1e8aaf75daba3a770e402659d66f12025b1762502f9df16b741bc6fc4919b").unwrap();
 
     let save_start = u128::from_str_radix(&*set[19].to_string(), 16).unwrap();
-    let save_end = u128::from_str_radix(&*set[20].to_string(),16).unwrap();
+    let save_end = u128::from_str_radix(&*set[20].to_string(), 16).unwrap();
 
     let config_file = lines_from_file("confFkey.txt").unwrap();
 
+    let ice_library = ice_library::IceLibrary::new();
+    ice_library.init_secp256_lib();
+
+
     loop {
         hex_rand.clear();
-        for i in enum_start..64-enum_end {
+        for i in enum_start..64 - enum_end {
             if list_custom[i] == "*" {
                 hex_rand.push_str(&HEX[rng.gen_range(0..16)].to_string());
             } else {
@@ -202,7 +207,7 @@ fn process(file_content: &Arc<Bloom<String>>, bench: bool, tx: Sender<String>, s
             }
         }
 
-        for end_h in save_end..=end_hex  {
+        for end_h in save_end..=end_hex {
             for start_h in save_start..=start_hex {
                 let st = if start_hex == 0 { "".to_string() } else { format!("{:0enum_start$X}", start_h) };
                 let en = if end_hex == 0 { "".to_string() } else { format!("{:0enum_end$X}", end_h) };
@@ -210,11 +215,12 @@ fn process(file_content: &Arc<Bloom<String>>, bench: bool, tx: Sender<String>, s
 
                 let secret_key = SecretKey::from_str(hex_rand.as_str()).unwrap_or(secret_key_default);
 
-                let private_key_u = PrivateKey::new_uncompressed(secret_key, Bitcoin);
-                let private_key_c = PrivateKey::new(secret_key, Bitcoin);
+                let ice_pub_unc = ice_library.privatekey_to_publickey(hex_rand.as_str());
+                let ice_pub_comp = ice_library.publickey_uncompres_to_compres(ice_pub_unc.as_str());
 
-                let public_key_u = PublicKey::from_private_key(&Secp256k1::new(), &private_key_u);
-                let public_key_c = PublicKey::from_private_key(&Secp256k1::new(), &private_key_c);
+                let public_key_u = PublicKey::from_str(ice_pub_unc.as_str()).unwrap();
+                let public_key_c = PublicKey::from_str(ice_pub_comp.as_str()).unwrap();
+
 
                 if btc44_u { addresa.push(wallets::get_legacy(&public_key_u.to_bytes(), wallets::LEGASY_BTC)) };
                 if btc44_c { addresa.push(wallets::get_legacy(&public_key_c.to_bytes(), wallets::LEGASY_BTC)) };
@@ -243,17 +249,18 @@ fn process(file_content: &Arc<Bloom<String>>, bench: bool, tx: Sender<String>, s
                 if btg44_c { addresa.push(wallets::get_legacy(&public_key_c.to_bytes(), wallets::LEGASY_BTG)) };
                 if btg49 { addresa.push(wallets::get_bip49(public_key_c.to_bytes(), wallets::BIP49_BTG)); };
 
+
                 hex = hex + 1;
                 for a in addresa.iter() {
                     if file_content.check(&a) {
-                        print_and_save(a.to_string(), secret_key.display_secret().to_string());
+                        print_and_save(a.to_string(), &secret_key.display_secret().to_string());
                     }
 
                     if bench {
                         speed = speed + 1;
                         if start.elapsed() >= Duration::from_secs(1) {
                             println!("--------------------------------------------------------");
-                            println!("HEX:{}", &secret_key.display_secret());
+                            println!("HEX:{}", &secret_key.display_secret().to_string());
                             for ad in addresa.iter() {
                                 println!("ADDRESS:{ad}");
                             }
@@ -268,23 +275,23 @@ fn process(file_content: &Arc<Bloom<String>>, bench: bool, tx: Sender<String>, s
                             start = Instant::now();
                             speed = 0;
                             hex = 0;
-                            speed_save = speed_save+1;
+                            speed_save = speed_save + 1;
                         }
-                        if speed_save>=10{
-                          //каждые 10 секунд сохраняем
-                            let mut cont="".to_string();
-                            for (i,f) in config_file.iter().enumerate(){
-                                if i==20{
-                                    let st20 = if st==""{ "0 -ENUMERATION SAVE start\n".to_string() }else { format!("{:x} -ENUMERATION SAVE start\n",start_h)};
+                        if speed_save >= 10 {
+                            //каждые 10 секунд сохраняем
+                            let mut cont = "".to_string();
+                            for (i, f) in config_file.iter().enumerate() {
+                                if i == 20 {
+                                    let st20 = if st == "" { "0 -ENUMERATION SAVE start\n".to_string() } else { format!("{:x} -ENUMERATION SAVE start\n", start_h) };
                                     cont.push_str(st20.as_str());
-                                }else if i==21 {
-                                    let st21 = if en==""{"0 -ENUMERATION SAVE end\n".to_string()}else { format!("{:x} -ENUMERATION SAVE end\n",end_h )};
+                                } else if i == 21 {
+                                    let st21 = if en == "" { "0 -ENUMERATION SAVE end\n".to_string() } else { format!("{:x} -ENUMERATION SAVE end\n", end_h) };
                                     cont.push_str(st21.as_str());
                                 } else {
                                     cont.push_str(&*format!("{f}\n"));
                                 }
-                                tx.send(format!("0,0,SAVE").to_string()).unwrap();
-                                speed_save=0;
+                                // tx.send(format!("0,0,SAVE").to_string()).unwrap();
+                                speed_save = 0;
                             }
 
                             let file_path = "confFkey.txt";
@@ -303,6 +310,7 @@ fn process(file_content: &Arc<Bloom<String>>, bench: bool, tx: Sender<String>, s
         }
     }
 }
+
 fn get_hex(range: usize) -> u128 {
     let hex = match range {
         1 => 0xF,
@@ -341,7 +349,8 @@ fn get_hex(range: usize) -> u128 {
     };
     hex
 }
-fn print_and_save(address: String, secret_key: String) {
+
+fn print_and_save(address: String, secret_key: &String) {
     println!("\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
     println!("!!!!!!!!!!!!!!!!!!!!FOUND!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
     println!("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
