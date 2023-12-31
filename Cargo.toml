@@ -1,6 +1,6 @@
 [package]
 name = "Find_key"
-version = "1.0.7"
+version = "2.0.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -10,12 +10,12 @@ build = "build.rs"
 
 [dependencies]
 rand = "0.8.5"
-bitcoin = "0.31.0"
-secp256k1 = {version = "0.28.0", features = ["rand"]}
 serde = {version = "1.0.130", features = ["derive"]}
 serde-pickle = "1.0"
 num_cpus = "1.13.0"
 tokio = { version = "1.20.1", features = ["full"] }
+
+bitcoin = "0.31.0"
 
 tiny-hderive = "0.3.0"
 tiny-keccak = {version = "2.0.2", features = ['keccak']}

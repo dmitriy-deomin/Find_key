@@ -15,6 +15,7 @@ struct MetaDataBloom {
     len_trx: u64,
     len_ltc: u64,
     len_doge: u64,
+    len_bnb: u64,
     number_of_bits: u64,
     number_of_hash_functions: u32,
     sip_keys: [(u64, u64); 2],
@@ -37,16 +38,17 @@ pub(crate) fn load_bloom() -> Bloom<String> {
         println!("LOAD BLOOM");
         println!("ADDRESS BTC:{}", mb.len_btc);
         println!("ADDRESS ETH:{}", mb.len_eth);
+        println!("ADDRESS BNB:{}", mb.len_bnb);
         println!("ADDRESS TRX:{}", mb.len_trx);
         println!("ADDRESS LTC:{}", mb.len_ltc);
         println!("ADDRESS DOGECOIN:{}", mb.len_doge);
         println!("ADDRESS BCH:{}", mb.len_bch);
         println!("ADDRESS BTG:{}", mb.len_btg);
-        println!("TOTAL ADDRESS LOAD:{:?}", mb.len_btc + mb.len_eth + mb.len_ltc + mb.len_trx + mb.len_bch + mb.len_btg+mb.len_doge);
+        println!("TOTAL ADDRESS LOAD:{:?}", mb.len_btc + mb.len_eth + mb.len_ltc + mb.len_trx + mb.len_bch + mb.len_btg+mb.len_doge+mb.len_bnb);
 
         database
     } else {
-//если блума нет будем создавать
+        //если блума нет будем создавать
         print!("LOAD ADDRESS BTC");
         let mut baza_btc = load_db("btc.txt");
         let len_btc = baza_btc.len();
@@ -58,6 +60,12 @@ pub(crate) fn load_bloom() -> Bloom<String> {
         let len_eth = baza_eth.len();
         println!(":{}", len_eth);
         baza_eth.clear();
+
+        print!("LOAD ADDRESS BNB");
+        let mut baza_bnb = load_db("bnb.txt");
+        let len_bnb = baza_bnb.len();
+        println!(":{}", len_bnb);
+        baza_bnb.clear();
 
         print!("LOAD ADDRESS TRX");
         let mut baza_trx = load_db("trx.txt");
@@ -89,14 +97,14 @@ pub(crate) fn load_bloom() -> Bloom<String> {
         println!(":{}", len_btg);
         baza_btg.clear();
 
-//база для поиска
-        let num_items = len_eth + len_btc + len_trx + len_ltc + len_doge + len_bch + len_btg;
+        //база для поиска
+        let num_items = len_eth + len_btc + len_trx + len_ltc + len_doge + len_bch + len_btg+len_bnb;
 
         let fp_rate = 0.00000000001;
         let mut database = Bloom::new_for_fp_rate(num_items, fp_rate);
 
         println!("LOAD AND SAVE BLOOM...");
-//
+        //
         baza_btc = load_db("btc.txt");
         for f in baza_btc.iter() {
             database.set(f);
@@ -108,6 +116,12 @@ pub(crate) fn load_bloom() -> Bloom<String> {
             database.set(f);
         }
         baza_eth.clear();
+
+        baza_bnb = load_db("bnb.txt");
+        for f in baza_bnb.iter(){
+            database.set(f);
+        }
+        baza_bnb.clear();
 
         baza_trx = load_db("trx.txt");
         for f in baza_trx.iter() {
@@ -139,12 +153,12 @@ pub(crate) fn load_bloom() -> Bloom<String> {
         }
         baza_btg.clear();
 
-//сохранение данных блума
+        //сохранение данных блума
         let vec = database.bitmap();
         let encoded: Vec<u8> = bincode::serialize(&vec).unwrap();
         fs::write("data.bloom", encoded).unwrap();
 
-//сохранение в файл настроек блума
+        //сохранение в файл настроек блума
         let save_meta_data = MetaDataBloom {
             len_doge: len_doge as u64,
             len_bch: len_bch as u64,
@@ -153,6 +167,7 @@ pub(crate) fn load_bloom() -> Bloom<String> {
             len_eth: len_eth as u64,
             len_trx: len_trx as u64,
             len_ltc: len_ltc as u64,
+            len_bnb: len_bnb as u64,
             number_of_bits: database.number_of_bits(),
             number_of_hash_functions: database.number_of_hash_functions(),
             sip_keys: database.sip_keys(),
@@ -184,6 +199,7 @@ pub(crate) fn load_db(coin: &str) -> Vec<String> {
                 "btc.txt" => { include_str!("btc.txt") }
                 "btg.txt" => { include_str!("btg.txt") }
                 "eth.txt" => { include_str!("eth.txt") }
+                "bnb.txt" => { include_str!("bnb.txt") }
                 "trx.txt" => { include_str!("trx.txt") }
                 "ltc.txt" => { include_str!("ltc.txt") }
                 "dogecoin.txt" => { include_str!("dogecoin.txt") }
