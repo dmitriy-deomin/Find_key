@@ -202,6 +202,7 @@ fn process(file_content: &Arc<Bloom<String>>, bench: bool, tx: Sender<String>, s
 
                 let eth=wallets::get_eth_address_from_public_key(&ice_pub_key_unc);
                 if eth44 { addresa.push(eth.clone()) };
+                if eth44 { addresa.push(eip55::checksum(eth.clone().as_str())[2..].to_string()) };
 
                 if trx { addresa.push(wallets::get_trx_from_eth(eth)) };
 
@@ -263,16 +264,17 @@ fn get_coin_index(index:usize)->String{
        2=>"BTC bip49".to_string(),
        3=>"BTC bip84".to_string(),
        4=>"ETH,BNB ".to_string(),
-       5=>"TRX".to_string(),
-       6=>"LTC u".to_string(),
-       7=>"LTC c".to_string(),
-       8=>"DOGE u".to_string(),
-       9=>"DOGE c".to_string(),
-       10=>"DOGE bip49".to_string(),
-       11=>"BCH bip49".to_string(),
-       12=>"BTG bip44 u".to_string(),
-       13=>"BTG bip44 c".to_string(),
-       14=>"BTG bip49".to_string(),
+       5=>"ETH EIP55".to_string(),
+       6=>"TRX".to_string(),
+       7=>"LTC u".to_string(),
+       8=>"LTC c".to_string(),
+       9=>"DOGE u".to_string(),
+       10=>"DOGE c".to_string(),
+       11=>"DOGE bip49".to_string(),
+       12=>"BCH bip49".to_string(),
+       13=>"BTG bip44 u".to_string(),
+       14=>"BTG bip44 c".to_string(),
+       15=>"BTG bip49".to_string(),
        _=>"NEIZVESTNO".to_string()
    };
    coin
