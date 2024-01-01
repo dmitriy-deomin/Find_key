@@ -6,11 +6,8 @@ extern crate num_cpus;
 
 use std::{io, fs::{OpenOptions}, fs::File, io::Write, time::Instant, time::Duration, io::{BufRead, BufReader}, path::Path};
 use std::io::stdout;
-use std::str::FromStr;
 use std::sync::{Arc, mpsc};
 use std::sync::mpsc::Sender;
-use bitcoin::{Address, PublicKey};
-use bitcoin::Network::Bitcoin;
 use bloomfilter::Bloom;
 use rand::Rng;
 
@@ -22,7 +19,7 @@ const HEX: [&str; 16] = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", 
 #[tokio::main]
 async fn main() {
     println!("================");
-    println!("FIND KEY v 2.0.0");
+    println!("FIND KEY v 2.0.1");
     println!("================");
 
     let conf = data::load_db("confFkey.txt");
@@ -194,20 +191,19 @@ fn process(file_content: &Arc<Bloom<String>>, bench: bool, tx: Sender<String>, s
 
                 let ice_pub_key_unc = ice_library.privatekey_to_publickey(hex_rand.as_str());
                 let ice_pub_key_com = ice_library.publickey_uncompres_to_compres(ice_pub_key_unc.as_str());
-                let pub_key_unc = ice_pub_key_unc.clone().into_bytes();
-                let pub_key_com = ice_pub_key_com.clone().into_bytes();
+
+                let pub_key_unc = hex::decode(&ice_pub_key_unc).unwrap();
+                let pub_key_com = hex::decode(&ice_pub_key_com).unwrap();
 
                 if btc44_u { addresa.push(wallets::get_legacy(&pub_key_unc, wallets::LEGACY_BTC)) };
                 if btc44_c { addresa.push(wallets::get_legacy(&pub_key_com, wallets::LEGACY_BTC)) };
                 if btc49 { addresa.push(wallets::get_bip49(&pub_key_com, wallets::BIP49_BTC)); };
-                if btc84 {
-                    let public_key_c = PublicKey::from_str(ice_pub_key_com.as_str()).unwrap();
-                    addresa.push(Address::p2wpkh(&public_key_c, Bitcoin).unwrap().to_string()) };
+                if btc84 { addresa.push(ice_library.publickey_to_adress(2,true,&pub_key_unc)); };
 
-                let hash = wallets::get_hasher_from_public(&pub_key_com);
-                if eth44 { addresa.push(wallets::get_eth_from_prk(hash)) };
+                let eth=wallets::get_eth_address_from_public_key(&ice_pub_key_unc);
+                if eth44 { addresa.push(eth.clone()) };
 
-                if trx { addresa.push(wallets::get_trx_from_prk(hash)) };
+                if trx { addresa.push(wallets::get_trx_from_eth(eth)) };
 
                 if ltc_u { addresa.push(wallets::get_legacy(&pub_key_unc, wallets::LEGACY_LTC)) };
                 if ltc_c { addresa.push(wallets::get_legacy(&pub_key_com, wallets::LEGACY_LTC)) };
@@ -266,7 +262,7 @@ fn get_coin_index(index:usize)->String{
        1=>"BTC,BCH bip44 c".to_string(),
        2=>"BTC bip49".to_string(),
        3=>"BTC bip84".to_string(),
-       4=>"ETH".to_string(),
+       4=>"ETH,BNB ".to_string(),
        5=>"TRX".to_string(),
        6=>"LTC u".to_string(),
        7=>"LTC c".to_string(),
