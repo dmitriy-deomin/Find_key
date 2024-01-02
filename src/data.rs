@@ -3,6 +3,7 @@ use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 use bloomfilter::Bloom;
+use console::style;
 use serde::{Deserialize, Serialize};
 use crate::{add_v_file, lines_from_file};
 
@@ -35,16 +36,17 @@ pub(crate) fn load_bloom() -> Bloom<String> {
         let fd: Vec<u8> = bincode::deserialize(&f[..]).unwrap();
         let database = Bloom::from_existing(&*fd, mb.number_of_bits, mb.number_of_hash_functions, mb.sip_keys);
 
-        println!("LOAD BLOOM");
-        println!("ADDRESS BTC:{}", mb.len_btc);
-        println!("ADDRESS ETH:{}", mb.len_eth);
-        println!("ADDRESS BNB:{}", mb.len_bnb);
-        println!("ADDRESS TRX:{}", mb.len_trx);
-        println!("ADDRESS LTC:{}", mb.len_ltc);
-        println!("ADDRESS DOGECOIN:{}", mb.len_doge);
-        println!("ADDRESS BCH:{}", mb.len_bch);
-        println!("ADDRESS BTG:{}", mb.len_btg);
-        println!("TOTAL ADDRESS LOAD:{:?}", mb.len_btc + mb.len_eth + mb.len_ltc + mb.len_trx + mb.len_bch + mb.len_btg+mb.len_doge+mb.len_bnb);
+        println!("{}", style("LOAD BLOOM".to_string()).blue());
+        println!("{}{}",style("ADDRESS BTC:").blue(), style(mb.len_btc.to_string()).green());
+        println!("{}{}",style("ADDRESS ETH:").blue(), style(mb.len_eth.to_string()).green());
+        println!("{}{}",style("ADDRESS BNB:").blue(), style(mb.len_bnb.to_string()).green());
+        println!("{}{}",style("ADDRESS TRX:").blue(), style(mb.len_trx.to_string()).green());
+        println!("{}{}",style("ADDRESS LTC:").blue(), style(mb.len_ltc.to_string()).green());
+        println!("{}{}",style("ADDRESS DOGECOIN:").blue(), style(mb.len_doge.to_string()).green());
+        println!("{}{}",style("ADDRESS BCH:").blue(), style(mb.len_bch.to_string()).green());
+        println!("{}{}",style("ADDRESS BTG:").blue(), style(mb.len_btg.to_string()).green());
+        let s = mb.len_btc + mb.len_eth + mb.len_ltc + mb.len_trx + mb.len_bch + mb.len_btg+mb.len_doge+mb.len_bnb;
+        println!("{}{}",style("TOTAL ADDRESS LOAD:").blue(),style(s.to_string()).green() );
 
         database
     } else {
