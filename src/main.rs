@@ -1,6 +1,7 @@
 mod data;
 mod wallets;
 mod ice_library;
+mod get_online;
 
 extern crate num_cpus;
 
@@ -9,18 +10,20 @@ use std::io::stdout;
 use std::sync::{Arc, mpsc};
 use std::sync::mpsc::Sender;
 use bloomfilter::Bloom;
+use colored::Colorize;
 use rand::Rng;
 
 use tokio::task;
 use rustils::parse::boolean::string_to_bool;
+use crate::get_online::{get_balance, get_bch_balance, get_bnb_balance, get_btg_balance, get_trx_balance};
 
 const HEX: [&str; 16] = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F"];
 
 #[tokio::main]
 async fn main() {
-    println!("================");
-    println!("FIND KEY v 2.0.1");
-    println!("================");
+    println!("{}", "================".blue());
+    println!("{}", "FIND KEY v 2.0.2".blue());
+    println!("{}", "================".blue());
 
     let conf = data::load_db("confFkey.txt");
 
@@ -47,9 +50,9 @@ async fn main() {
 
     let mut bench = false;
     if num_cores == 0 {
-        println!("----------------");
-        println!(" LOG MODE 1 CORE");
-        println!("----------------");
+        println!("{}", "----------------".red());
+        println!("{}", " LOG MODE 1 CORE".red());
+        println!("{}", "----------------".red());
         bench = true;
         num_cores = 1;
     }
@@ -74,11 +77,11 @@ async fn main() {
     ENUMERATION end:{enum_end}\n\
     STEP:{step}\n\
     ", num_cpus::get(), custom_digit,
-             string_to_bool(btc44_u.clone()), string_to_bool(btc44_c.clone()), string_to_bool(btc49.clone()),
-             string_to_bool(btc84.clone()),string_to_bool(eth44.clone()), string_to_bool(trx.clone()),
-             string_to_bool(ltc_u.clone()), string_to_bool(ltc_c.clone()), string_to_bool(doge_u.clone()),
-             string_to_bool(doge_c.clone()), string_to_bool(doge49.clone()), string_to_bool(bch.clone()),
-             string_to_bool(btg44_u.clone()), string_to_bool(btg44_c.clone()), string_to_bool(btg49.clone()));
+             color_bool(string_to_bool(btc44_u.clone())), color_bool(string_to_bool(btc44_c.clone())), color_bool(string_to_bool(btc49.clone())),
+             color_bool(string_to_bool(btc84.clone())), color_bool(string_to_bool(eth44.clone())), color_bool(string_to_bool(trx.clone())),
+             color_bool(string_to_bool(ltc_u.clone())), color_bool(string_to_bool(ltc_c.clone())), color_bool(string_to_bool(doge_u.clone())),
+             color_bool(string_to_bool(doge_c.clone())), color_bool(string_to_bool(doge49.clone())), color_bool(string_to_bool(bch.clone())),
+             color_bool(string_to_bool(btg44_u.clone())), color_bool(string_to_bool(btg44_c.clone())), color_bool(string_to_bool(btg49.clone())));
 
     //если блум есть загрузим его
     let database = data::load_bloom();
@@ -127,18 +130,73 @@ async fn main() {
     for received in rx {
         let list: Vec<&str> = received.split(",").collect();
         let mut speed = list[0].to_string().parse::<u64>().unwrap();
-        let hex = list[1].to_string().parse::<u64>().unwrap() * num_cores as u64;
-        speed = speed * num_cores as u64;
-        print!("\r{}[ADDRESS:{speed}/s][HEX:{hex}/s][HEX:{}]", backspace, list[2].to_string());
-        stdout.flush().unwrap();
+        let mut hex = list[1].to_string().parse::<u64>().unwrap();
+
+        if speed == 0 && hex == 0 {
+            let adr_coin = list[2].to_string();
+            let adr = adr_coin.split(" ").collect::<Vec<_>>()[0].to_string();
+            let con = adr_coin.split(" ").collect::<Vec<_>>()[1].to_string();
+            if con == "BTC" {
+                println!("{}", "********************************************************************".magenta());
+                println!("{}{}:{}","ONLINE BALANCE BTC:".magenta(), &adr.magenta(), get_balance(&adr, "btc").await.red());
+                if &adr[0..1]=="1"{
+                    println!("{}{}:{}","ONLINE BALANCE BCH:".magenta(), &adr.magenta(), get_bch_balance(&adr).await.red());
+                }
+                println!("{}", "********************************************************************".magenta());
+            }
+            if con == "ETH" {
+                println!("{}", "********************************************************************".magenta());
+                println!("{}{}:{}","ONLINE BALANCE ETH:".magenta(), &adr.magenta(), get_balance(&adr, "eth").await.red());
+                println!("{}{}:{}","ONLINE BALANCE BNB:".magenta(), &adr.magenta(), get_bnb_balance(&adr).await.red());
+                println!("{}", "********************************************************************".magenta());
+            }
+            if con == "DOGE" {
+                println!("{}", "********************************************************************".magenta());
+                println!("{}{}:{}","ONLINE BALANCE DOGE:".magenta(), &adr.magenta(), get_balance(&adr, "doge").await.red());
+                println!("{}", "********************************************************************".magenta());
+            }
+            if con == "LTC" {
+                println!("{}", "********************************************************************".magenta());
+                println!("{}{}:{}","ONLINE BALANCE LTC:".magenta(), &adr.magenta(), get_balance(&adr, "ltc").await.red());
+                println!("{}", "********************************************************************".magenta());
+            }
+            if con == "TRX" {
+                println!("{}", "********************************************************************".magenta());
+                println!("{}{}:{}","ONLINE BALANCE TRX:".magenta(), &adr.magenta(), get_trx_balance(&adr).await.red());
+                println!("{}", "********************************************************************".magenta());
+            }
+            if con == "BTG" {
+                println!("{}", "********************************************************************".magenta());
+                println!("{}{}:{}","ONLINE BALANCE BTG:".magenta(), &adr.magenta(), get_btg_balance(&adr).await.red());
+                println!("{}", "********************************************************************".magenta());
+            }
+            if con == "BCH" {
+                println!("{}", "********************************************************************".magenta());
+                println!("{}{}:{}","ONLINE BALANCE BCH:".magenta(), &adr.magenta(), get_bch_balance(&adr).await.red());
+                println!("{}", "********************************************************************".magenta());
+            }
+        } else {
+            hex = hex * num_cores as u64;
+            speed = speed * num_cores as u64;
+            print!("\r{}{}{}{}{}{}{}{}", backspace,"[ADDRESS:".green(),speed.to_string().green(),"/s][HEX:".green(),hex.to_string().green(),"/s][HEX:".green(),list[2].to_string().trim().green(),"]".green());
+            stdout.flush().unwrap();
+        }
     }
+}
+
+fn color_bool(b: bool) ->String{
+    let colored= if b{
+        format!("{}","true".green())
+    }else {
+        format!("{}","false".red())
+    };
+    colored
 }
 
 fn process(file_content: &Arc<Bloom<String>>, bench: bool, tx: Sender<String>, set: &Arc<Vec<String>>) {
     let mut start = Instant::now();
     let mut speed: u32 = 0;
 
-    let mut addresa = vec![];
     let mut hex = 0;
 
     let btc44_u = string_to_bool(set[0].to_string());
@@ -173,6 +231,8 @@ fn process(file_content: &Arc<Bloom<String>>, bench: bool, tx: Sender<String>, s
     let ice_library = ice_library::IceLibrary::new();
     ice_library.init_secp256_lib();
 
+    let mut addresa = vec![];
+
     loop {
         hex_rand.clear();
         for i in enum_start..64 - enum_end {
@@ -195,36 +255,38 @@ fn process(file_content: &Arc<Bloom<String>>, bench: bool, tx: Sender<String>, s
                 let pub_key_unc = hex::decode(&ice_pub_key_unc).unwrap();
                 let pub_key_com = hex::decode(&ice_pub_key_com).unwrap();
 
-                if btc44_u { addresa.push(wallets::get_legacy(&pub_key_unc, wallets::LEGACY_BTC)) };
-                if btc44_c { addresa.push(wallets::get_legacy(&pub_key_com, wallets::LEGACY_BTC)) };
-                if btc49 { addresa.push(wallets::get_bip49(&pub_key_com, wallets::BIP49_BTC)); };
-                if btc84 { addresa.push(ice_library.publickey_to_adress(2,true,&pub_key_unc)); };
+                let btc44_comp = wallets::get_legacy(&pub_key_com, wallets::LEGACY_BTC);
 
-                let eth=wallets::get_eth_address_from_public_key(&ice_pub_key_unc);
-                if eth44 { addresa.push(eth.clone()) };
-                if eth44 { addresa.push(eip55::checksum(eth.clone().as_str())[2..].to_string()) };
+                if btc44_u { addresa.push((wallets::get_legacy(&pub_key_unc, wallets::LEGACY_BTC), "BTC")) };
+                if btc44_c { addresa.push((btc44_comp.clone(), "BTC")) };
+                if btc49 { addresa.push((wallets::get_bip49(&pub_key_com, wallets::BIP49_BTC), "BTC")); };
+                if btc84 { addresa.push((ice_library.publickey_to_adress(2, true, &pub_key_unc), "BTC")); };
 
-                if trx { addresa.push(wallets::get_trx_from_eth(eth)) };
+                let eth = wallets::get_eth_address_from_public_key(&ice_pub_key_unc);
+                if eth44 { addresa.push((eth.clone(), "ETH")) };
+                if eth44 { addresa.push((eip55::checksum(eth.clone().as_str())[2..].to_string(), "ETH")) };
 
-                if ltc_u { addresa.push(wallets::get_legacy(&pub_key_unc, wallets::LEGACY_LTC)) };
-                if ltc_c { addresa.push(wallets::get_legacy(&pub_key_com, wallets::LEGACY_LTC)) };
+                if trx { addresa.push((wallets::get_trx_from_eth(eth), "TRX")) };
 
-                if doge_u { addresa.push(wallets::get_legacy(&pub_key_unc, wallets::LEGACY_DOGE)) };
-                if doge_c { addresa.push(wallets::get_legacy(&pub_key_com, wallets::LEGACY_DOGE)) };
-                if doge49 { addresa.push(wallets::get_bip49(&pub_key_com, wallets::BIP49_DOGE)) };
+                if ltc_u { addresa.push((wallets::get_legacy(&pub_key_unc, wallets::LEGACY_LTC), "LTC")) };
+                if ltc_c { addresa.push((wallets::get_legacy(&pub_key_com, wallets::LEGACY_LTC), "LTC")) };
 
-                if bch { addresa.push(wallets::legasy_btc_to_bch(wallets::get_legacy(&pub_key_com, wallets::LEGACY_BTC))) };
+                if doge_u { addresa.push((wallets::get_legacy(&pub_key_unc, wallets::LEGACY_DOGE), "DOGE")) };
+                if doge_c { addresa.push((wallets::get_legacy(&pub_key_com, wallets::LEGACY_DOGE), "DOGE")) };
+                if doge49 { addresa.push((wallets::get_bip49(&pub_key_com, wallets::BIP49_DOGE), "DOGE")) };
 
-                if btg44_u { addresa.push(wallets::get_legacy(&pub_key_unc, wallets::LEGACY_BTG)) };
-                if btg44_c { addresa.push(wallets::get_legacy(&pub_key_com, wallets::LEGACY_BTG)) };
-                if btg49 { addresa.push(wallets::get_bip49(&pub_key_com, wallets::BIP49_BTG)); };
+                if bch { addresa.push((wallets::legasy_btc_to_bch(btc44_comp), "BCH")) };
+
+                if btg44_u { addresa.push((wallets::get_legacy(&pub_key_unc, wallets::LEGACY_BTG), "BTG")) };
+                if btg44_c { addresa.push((wallets::get_legacy(&pub_key_com, wallets::LEGACY_BTG), "BTG")) };
+                if btg49 { addresa.push((wallets::get_bip49(&pub_key_com, wallets::BIP49_BTG), "BTG")); };
 
 
                 hex = hex + 1;
-                for (i,a) in addresa.iter().enumerate() {
-                    if file_content.check(&a) {
-                        let coin_and_adress = format!("{} {}",get_coin_index(i),a);
-                        print_and_save(coin_and_adress, &hex_rand);
+                for a in addresa.iter() {
+                    if file_content.check(&a.0) {
+                        print_and_save(a, &hex_rand);
+                        tx.send(format!("{},{},{} {}", 0, 0, a.0, a.1).to_string()).unwrap()
                     }
 
                     if bench {
@@ -232,9 +294,8 @@ fn process(file_content: &Arc<Bloom<String>>, bench: bool, tx: Sender<String>, s
                         if start.elapsed() >= Duration::from_secs(1) {
                             println!("--------------------------------------------------------");
                             println!("HEX:{}", &hex_rand);
-                            for (i,ad) in addresa.iter().enumerate() {
-                                let coin =get_coin_index(i);
-                                println!("ADDRESS:{coin} {ad}");
+                            for ad in addresa.iter() {
+                                println!("ADDRESS:{} {}", ad.1, ad.0);
                             }
                             println!("--------------------------------------------------------");
                             start = Instant::now();
@@ -243,41 +304,17 @@ fn process(file_content: &Arc<Bloom<String>>, bench: bool, tx: Sender<String>, s
                     } else {
                         speed = speed + 1;
                         if start.elapsed() >= Duration::from_secs(1) {
-                            tx.send(format!("{speed},{hex},{hex_rand}", ).to_string()).unwrap();
+                            tx.send(format!("{speed},{hex},{} ", hex_rand)).unwrap();
                             start = Instant::now();
                             speed = 0;
                             hex = 0;
                         }
-
                     }
                 }
                 addresa.clear();
             }
         }
     }
-}
-
-fn get_coin_index(index:usize)->String{
-   let coin =  match index {
-       0=>"BTC,BCH bip44 u".to_string(),
-       1=>"BTC,BCH bip44 c".to_string(),
-       2=>"BTC bip49".to_string(),
-       3=>"BTC bip84".to_string(),
-       4=>"ETH,BNB ".to_string(),
-       5=>"ETH EIP55".to_string(),
-       6=>"TRX".to_string(),
-       7=>"LTC u".to_string(),
-       8=>"LTC c".to_string(),
-       9=>"DOGE u".to_string(),
-       10=>"DOGE c".to_string(),
-       11=>"DOGE bip49".to_string(),
-       12=>"BCH bip49".to_string(),
-       13=>"BTG bip44 u".to_string(),
-       14=>"BTG bip44 c".to_string(),
-       15=>"BTG bip49".to_string(),
-       _=>"NEIZVESTNO".to_string()
-   };
-   coin
 }
 
 fn get_hex(range: usize) -> u128 {
@@ -319,22 +356,20 @@ fn get_hex(range: usize) -> u128 {
     hex
 }
 
-fn print_and_save(address: String, secret_key: &String) {
-    println!("\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-    println!("!!!!!!!!!!!!!!!!!!!!FOUND!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-    println!("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-    println!("ADDRESS:{}", &address);
-    println!("HEX:{}", &secret_key);
+fn print_and_save(address: &(String, &str), secret_key: &String) {
+    println!("{}", "\n!!!!!!!!!!!!!!!!!!!!FOUND!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!".cyan());
+    println!("{}{}","COIN:".cyan(), address.1.cyan());
+    println!("{}{}","ADDRESS:".cyan(), address.0.cyan());
+    println!("{}{}","HEX:".cyan(), &secret_key.cyan());
 
     let s = format!("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n\
-    ADDRESS:{address}\n\
+    COIN:{}\n\
+    ADDRESS:{}\n\
     HEX:{secret_key}\n\
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n", address.1.to_string(), address.0.to_string(), );
     add_v_file("FOUND.txt", s.to_string());
 
-    println!("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-    println!("!!!!!!!!!!!!!!!SAVE TO FOUND.txt!!!!!!!!!!!!!!!!!!!!!!!!");
-    println!("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+    println!("{}", "!!!!!!!!!!!!!!!SAVE TO FOUND.txt!!!!!!!!!!!!!!!!!!!!!!!!".cyan());
 }
 
 fn lines_from_file(filename: impl AsRef<Path>) -> io::Result<Vec<String>> {
