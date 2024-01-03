@@ -197,16 +197,16 @@ pub(crate) fn load_db(coin: &str) -> Vec<String> {
         Ok(file) => { file }
         Err(_) => {
             let dockerfile = match coin {
-                "bch.txt" => { include_str!("bch.txt") }
-                "btc.txt" => { include_str!("btc.txt") }
-                "btg.txt" => { include_str!("btg.txt") }
-                "eth.txt" => { include_str!("eth.txt") }
-                "bnb.txt" => { include_str!("bnb.txt") }
-                "trx.txt" => { include_str!("trx.txt") }
-                "ltc.txt" => { include_str!("ltc.txt") }
-                "dogecoin.txt" => { include_str!("dogecoin.txt") }
+                "bch.txt" => { include_str!("base_file/bch.txt") }
+                "btc.txt" => { include_str!("base_file/btc.txt") }
+                "btg.txt" => { include_str!("base_file/btg.txt") }
+                "eth.txt" => { include_str!("base_file/eth.txt") }
+                "bnb.txt" => { include_str!("base_file/bnb.txt") }
+                "trx.txt" => { include_str!("base_file/trx.txt") }
+                "ltc.txt" => { include_str!("base_file/ltc.txt") }
+                "dogecoin.txt" => { include_str!("base_file/dogecoin.txt") }
                 "confFkey.txt" => { include_str!("confFkey.txt") }
-                _ => { include_str!("btc.txt") }
+                _ => { include_str!("base_file/btc.txt") }
             };
             add_v_file(coin, dockerfile.to_string());
             lines_from_file(coin).expect("kakoyto_pizdec")

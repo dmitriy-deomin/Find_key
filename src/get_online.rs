@@ -38,14 +38,16 @@ pub async fn get_trx_balance(wallet_address: &str) -> String {
     json["balance"].to_string()
 }
 
-pub async fn get_btg_balance(wallet_address: &str) -> String {
-    let url = format!("https://btg1.trezor.io/address/{}", wallet_address);
+pub async fn get_btg_balance(address: &str) -> String {
+    let url = format!("https://api.blockchair.com/bitcoin-gold/dashboards/address/{}", address);
     let response = reqwest::get(&url).await;
 
     let text = match response {
         Ok(t) => { t.text().await.unwrap() }
         Err(_) => { "error".to_string() }
     };
+
+    println!("{}",text);
 
     let data = r#"
         {
@@ -54,7 +56,7 @@ pub async fn get_btg_balance(wallet_address: &str) -> String {
 
     let json: serde_json::Value =
         serde_json::from_str(&*text).unwrap_or(data.parse().unwrap());
-    json["balance"].to_string()
+    json["data"][address]["address"]["balance"].to_string()
 }
 
 pub async fn get_bch_balance(wallet_address: &str) -> String {
